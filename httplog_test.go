@@ -83,8 +83,8 @@ func TestLogger(test *testing.T) {
 		test.Fatalf("expected request-method of GET got %s", line["request-method"])
 	}
 
-	if line["request-path"] != "/demo" {
-		test.Fatalf("expected request-path of /demo got %s", line["request-path"])
+	if line["request-url"] != "/demo" {
+		test.Fatalf("expected request-url of /demo got %s", line["request-url"])
 	}
 
 	if line["request-body"] != "Hello World" {
