@@ -2,12 +2,11 @@ package httplog
 
 import (
 	"bytes"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
-
-	"golang.org/x/exp/slog"
 )
 
 func parseLine(p []byte) map[string]string {
@@ -77,7 +76,7 @@ func TestLogger(test *testing.T) {
 	b := new(bytes.Buffer)
 
 	// create new logger with a text-formatted handler.
-	hl := NewLogger(slog.New(slog.NewTextHandler(b)))
+	hl := NewLogger(slog.New(slog.NewTextHandler(b, nil)))
 
 	// create new testing server.
 	s := httptest.NewServer(hl.Handler(mux))

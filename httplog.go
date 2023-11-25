@@ -4,13 +4,12 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"log/slog"
 	"net/http"
-
-	"golang.org/x/exp/slog"
 )
 
 type Logger struct {
-	slogger *slog.Logger
+	slog *slog.Logger
 }
 
 type ResponseWriter struct {
@@ -83,7 +82,7 @@ func (l *Logger) Handler(n http.Handler) http.Handler {
 		}
 
 		// write the log message.
-		l.slogger.Log(
+		l.slog.Log(
 			context.Background(),
 			lvl,
 			"handled",
@@ -107,6 +106,6 @@ func (l *Logger) Handler(n http.Handler) http.Handler {
 
 func NewLogger(sl *slog.Logger) Logger {
 	return Logger{
-		slogger: sl,
+		slog: sl,
 	}
 }
