@@ -19,68 +19,82 @@ type ResponseWriter struct {
 	body   *bytes.Buffer
 }
 
-func (writer *ResponseWriter) Header() http.Header {
-	return writer.Writer.Header()
+func (w *ResponseWriter) Header() http.Header {
+	// forward the underlying headers.
+	return w.Writer.Header()
 }
 
-func (writer *ResponseWriter) Write(raw []byte) (int, error) {
-	_, err := writer.body.Write(raw)
-
+func (w *ResponseWriter) Write(p []byte) (int, error) {
+	// write to the buffer.
+	_, err := w.body.Write(p)
 	if err != nil {
 		return 0, err
 	}
 
-	return writer.Writer.Write(raw)
+	// write to the connection.
+	return w.Writer.Write(p)
 }
 
-func (writer *ResponseWriter) WriteHeader(status int) {
-	writer.status = status
-	writer.Writer.WriteHeader(status)
+func (w *ResponseWriter) WriteHeader(s int) {
+	// set our status.
+	w.status = s
+
+	// forward the status.
+	w.Writer.WriteHeader(s)
 }
 
-func (logger *Logger) Handler(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		response := ResponseWriter{
-			Writer: writer,
-			body:   new(bytes.Buffer),
+func (l *Logger) Handler(n http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		// create a response writer.
+		res := ResponseWriter{
+			Writer: w,
+			// create a buffer for
+			body: new(bytes.Buffer),
 		}
 
-		requestBody := new(bytes.Buffer)
+		// create a buffer for storing the request body.
+		rb := new(bytes.Buffer)
 
-		if request.Body != nil {
-			reader := io.TeeReader(request.Body, requestBody)
+		// check if we have a request body.
+		if req.Body != nil {
+			// create a tee reader, forwards any reads from the request body to our buffer.
+			r := io.TeeReader(req.Body, rb)
 
-			request.Body = io.NopCloser(reader)
+			// set the request body to our tee reader.
+			req.Body = io.NopCloser(r)
 		}
 
-		next.ServeHTTP(&response, request)
+		// forward the request to the next handler.
+		n.ServeHTTP(&res, req)
 
-		if request.Body != nil {
-			io.ReadAll(request.Body)
+		if req.Body != nil {
+			// read the rest of the request body.
+			io.ReadAll(req.Body)
 		}
 
-		logger.slogger.Info(
+		// write the log message.
+		l.slogger.Info(
 			"handled",
 			"request-method",
-			request.Method,
+			req.Method,
 			"request-url",
-			request.URL.String(),
+			req.URL.String(),
 			"request-headers",
-			request.Header,
+			req.Header,
 			"request-body",
-			requestBody.String(),
+			rb.String(),
 			"response-status",
-			response.status,
+			res.status,
 			"response-body",
-			response.body.String(),
+			res.body.String(),
 			"response-headers",
-			response.Header(),
+			res.Header(),
 		)
 	})
 }
 
-func NewLogger(slogger *slog.Logger) Logger {
+func NewLogger(sl *slog.Logger) Logger {
 	return Logger{
-		slogger: slogger,
+		slogger: sl,
 	}
 }
