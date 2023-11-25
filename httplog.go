@@ -2,6 +2,7 @@ package httplog // import "github.com/linden/httplog"
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"net/http"
 
@@ -72,8 +73,19 @@ func (l *Logger) Handler(n http.Handler) http.Handler {
 			io.ReadAll(req.Body)
 		}
 
+		// fallback level to info.
+		lvl := slog.LevelInfo
+
+		// check if the response status is in the 200 range.
+		if res.status < 200 || res.status > 299 {
+			// change the level to warn.
+			lvl = slog.LevelWarn
+		}
+
 		// write the log message.
-		l.slogger.Info(
+		l.slogger.Log(
+			context.Background(),
+			lvl,
 			"handled",
 			"request-method",
 			req.Method,
